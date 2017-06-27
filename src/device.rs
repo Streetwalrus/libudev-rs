@@ -110,6 +110,39 @@ impl<'a> Device<'a> {
         }
     }
 
+    /// Returns the parent of the device with matching subsystem and devtype.
+    pub fn parent_with_subsystem_devtype<T: AsRef<OsStr>>(&self, subsystem: T, devtype: T) -> Option<Device> {
+        let subsystem = match ::util::os_str_to_cstring(subsystem) {
+            Ok(s) => s,
+            Err(_) => return None
+        };
+
+        let devtype = match ::util::os_str_to_cstring(devtype) {
+            Ok(s) => s,
+            Err(_) => return None
+        };
+
+        let ptr = unsafe {
+            ::ffi::udev_device_get_parent_with_subsystem_devtype(self.device,
+                                                                 subsystem.as_ptr(),
+                                                                 devtype.as_ptr())
+        };
+
+        if !ptr.is_null() {
+            unsafe {
+                ::ffi::udev_device_ref(ptr);
+            }
+
+            Some(Device {
+                _context: self._context,
+                device: ptr,
+            })
+        }
+        else {
+            None
+        }
+    }
+
     /// Returns the subsystem name of the device.
     ///
     /// The subsystem name is a string that indicates which kernel subsystem the device belongs to.
